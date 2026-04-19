@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procesador Nación Abraham — Sistema Cuántico</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@200;400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020812;
+    --panel: #060f1f;
+    --border: #0d2a4a;
+    --accent: #00d4ff;
+    --accent2: #ff6b00;
+    --accent3: #39ff14;
+    --text: #c8dff0;
+    --dim: #4a7a9b;
+    --glow: 0 0 20px rgba(0,212,255,0.35);
+    --glow2: 0 0 20px rgba(255,107,0,0.35);
+    --glow3: 0 0 20px rgba(57,255,20,0.25);
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-main: 'Exo 2', sans-serif;
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: var(–font-main);
+min-height: 100vh;
+overflow-x: hidden;
+position: relative;
+}
+
+/* Animated grid background */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image:
+linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+background-size: 40px 40px;
+animation: gridShift 20s linear infinite;
+pointer-events: none;
+z-index: 0;
+}
+
+@keyframes gridShift {
+0% { transform: translateY(0); }
+100% { transform: translateY(40px); }
+}
+
+/* Particle canvas */
+#particles {
+position: fixed;
+inset: 0;
+pointer-events: none;
+z-index: 0;
+}
+
+.app-wrapper {
+position: relative;
+z-index: 1;
+max-width: 1300px;
+margin: 0 auto;
+padding: 20px;
+}
+
+/* ===== HEADER ===== */
+header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 24px 0 32px;
+border-bottom: 1px solid var(–border);
+margin-bottom: 32px;
+animation: fadeDown 0.8s ease both;
+}
+
+.logo-block { display: flex; align-items: center; gap: 16px; }
+
+.atom-icon {
+width: 52px; height: 52px;
+position: relative;
+flex-shrink: 0;
+}
+
+.atom-icon svg {
+animation: atomSpin 8s linear infinite;
+filter: drop-shadow(0 0 8px var(–accent));
+}
+
+@keyframes atomSpin {
+from { transform: rotate(0deg); }
+to { transform: rotate(360deg); }
+}
+
+.logo-text h1 {
+font-size: 1.5rem;
+font-weight: 800;
+letter-spacing: 0.06em;
+text-transform: uppercase;
+color: #fff;
+line-height: 1;
+}
+
+.logo-text p {
+font-family: var(–font-mono);
+font-size: 0.7rem;
+color: var(–accent);
+letter-spacing: 0.2em;
+text-transform: uppercase;
+margin-top: 4px;
+}
+
+.header-status {
+display: flex;
+align-items: center;
+gap: 8px;
+font-family: var(–font-mono);
+font-size: 0.75rem;
+color: var(–accent3);
+border: 1px solid rgba(57,255,20,0.25);
+padding: 8px 16px;
+border-radius: 2px;
+}
+
+.status-dot {
+width: 8px; height: 8px;
+border-radius: 50%;
+background: var(–accent3);
+box-shadow: 0 0 10px var(–accent3);
+animation: blink 1.2s ease-in-out infinite;
+}
+
+@keyframes blink {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.3; }
+}
+
+/* ===== CONTROLS PANEL ===== */
+.controls-panel {
+display: grid;
+grid-template-columns: 1fr 1fr 1fr;
+gap: 16px;
+margin-bottom: 28px;
+animation: fadeUp 0.8s 0.2s ease both;
+}
+
+.ctrl-card {
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius: 4px;
+padding: 20px;
+position: relative;
+overflow: hidden;
+transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.ctrl-card::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: linear-gradient(90deg, transparent, var(–accent), transparent);
+transform: scaleX(0);
+transition: transform 0.4s;
+}
+
+.ctrl-card:hover { border-color: var(–accent); box-shadow: var(–glow); }
+.ctrl-card:hover::before { transform: scaleX(1); }
+
+.ctrl-label {
+font-family: var(–font-mono);
+font-size: 0.7rem;
+color: var(–dim);
+text-transform: uppercase;
+letter-spacing: 0.15em;
+margin-bottom: 12px;
+display: flex;
+justify-content: space-between;
+}
+
+.ctrl-value {
+font-size: 1.8rem;
+font-weight: 800;
+color: var(–accent);
+font-family: var(–font-mono);
+line-height: 1;
+margin-bottom: 12px;
+text-shadow: var(–glow);
+transition: all 0.3s;
+}
+
+.ctrl-card input[type=range] {
+width: 100%;
+-webkit-appearance: none;
+height: 4px;
+background: var(–border);
+border-radius: 2px;
+outline: none;
+cursor: pointer;
+}
+
+.ctrl-card input[type=range]::-webkit-slider-thumb {
+-webkit-appearance: none;
+width: 16px;
+height: 16px;
+border-radius: 50%;
+background: var(–accent);
+box-shadow: 0 0 8px var(–accent);
+cursor: pointer;
+transition: transform 0.2s;
+}
+
+.ctrl-card input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+.ctrl-subtext {
+font-family: var(–font-mono);
+font-size: 0.65rem;
+color: var(–dim);
+margin-top: 8px;
+}
+
+/* ===== MAIN GRID ===== */
+.main-grid {
+display: grid;
+grid-template-columns: 2fr 1fr;
+gap: 20px;
+margin-bottom: 20px;
+animation: fadeUp 0.8s 0.4s ease both;
+}
+
+/* ===== CHART PANEL ===== */
+.chart-panel {
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius: 4px;
+padding: 24px;
+position: relative;
+}
+
+.panel-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 20px;
+padding-bottom: 12px;
+border-bottom: 1px solid var(–border);
+}
+
+.panel-title {
+font-size: 0.85rem;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 0.1em;
+color: #fff;
+}
+
+.panel-tag {
+font-family: var(–font-mono);
+font-size: 0.65rem;
+color: var(–accent);
+border: 1px solid rgba(0,212,255,0.2);
+padding: 3px 8px;
+border-radius: 2px;
+}
+
+/* ===== BLOCH SPHERE ===== */
+#bloch-canvas {
+display: block;
+margin: 0 auto;
+}
+
+/* ===== METRICS PANEL ===== */
+.metrics-panel {
+display: flex;
+flex-direction: column;
+gap: 12px;
+}
+
+.metric-card {
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius: 4px;
+padding: 18px;
+position: relative;
+overflow: hidden;
+transition: all 0.3s;
+}
+
+.metric-card:hover { border-color: rgba(0,212,255,0.3); }
+
+.metric-icon {
+font-size: 1.4rem;
+margin-bottom: 8px;
+display: block;
+}
+
+.metric-name {
+font-family: var(–font-mono);
+font-size: 0.65rem;
+color: var(–dim);
+text-transform: uppercase;
+letter-spacing: 0.12em;
+margin-bottom: 6px;
+}
+
+.metric-val {
+font-family: var(–font-mono);
+font-size: 1.3rem;
+font-weight: 700;
+line-height: 1;
+transition: all 0.4s;
+}
+
+.metric-val.green { color: var(–accent3); text-shadow: var(–glow3); }
+.metric-val.cyan { color: var(–accent); text-shadow: var(–glow); }
+.metric-val.orange { color: var(–accent2); text-shadow: var(–glow2); }
+.metric-val.white { color: #fff; }
+
+.metric-bar-track {
+margin-top: 10px;
+height: 3px;
+background: var(–border);
+border-radius: 2px;
+overflow: hidden;
+}
+
+.metric-bar-fill {
+height: 100%;
+border-radius: 2px;
+transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== TEMPERATURE CHART ===== */
+.chart-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 20px;
+margin-bottom: 20px;
+animation: fadeUp 0.8s 0.6s ease both;
+}
+
+canvas { display: block; }
+
+/* ===== COMPARE TABLE ===== */
+.compare-section {
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius: 4px;
+padding: 24px;
+margin-bottom: 20px;
+animation: fadeUp 0.8s 0.7s ease both;
+}
+
+.compare-table {
+width: 100%;
+border-collapse: collapse;
+margin-top: 16px;
+}
+
+.compare-table th {
+font-family: var(–font-mono);
+font-size: 0.65rem;
+text-transform: uppercase;
+letter-spacing: 0.12em;
+color: var(–dim);
+padding: 8px 16px;
+text-align: left;
+border-bottom: 1px solid var(–border);
+}
+
+.compare-table td {
+padding: 14px 16px;
+font-size: 0.9rem;
+border-bottom: 1px solid rgba(13,42,74,0.5);
+transition: background 0.2s;
+}
+
+.compare-table tr:hover td { background: rgba(0,212,255,0.03); }
+
+.compare-table tr.highlight td {
+color: #fff;
+font-weight: 600;
+}
+
+.compare-table tr.highlight td:first-child {
+color: var(–accent2);
+font-weight: 800;
+}
+
+.fid-bar {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+
+.fid-bar-track {
+flex: 1;
+height: 6px;
+background: var(–border);
+border-radius: 3px;
+overflow: hidden;
+}
+
+.fid-bar-fill {
+height: 100%;
+border-radius: 3px;
+transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== RUN BUTTON ===== */
+.run-section {
+display: flex;
+justify-content: center;
+padding: 20px 0;
+animation: fadeUp 0.8s 0.8s ease both;
+}
+
+.run-btn {
+font-family: var(–font-mono);
+font-size: 0.85rem;
+text-transform: uppercase;
+letter-spacing: 0.2em;
+background: transparent;
+border: 2px solid var(–accent);
+color: var(–accent);
+padding: 16px 48px;
+cursor: pointer;
+position: relative;
+overflow: hidden;
+transition: all 0.3s;
+clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+
+.run-btn::before {
+content: ‘’;
+position: absolute;
+inset: 0;
+background: var(–accent);
+transform: translateX(-102%);
+transition: transform 0.3s ease;
+}
+
+.run-btn:hover { color: var(–bg); box-shadow: var(–glow); }
+.run-btn:hover::before { transform: translateX(0); }
+.run-btn span { position: relative; z-index: 1; }
+
+.run-btn.running {
+animation: runPulse 0.6s ease-in-out infinite alternate;
+pointer-events: none;
+}
+
+@keyframes runPulse {
+from { box-shadow: var(–glow); }
+to { box-shadow: 0 0 40px rgba(0,212,255,0.7); }
+}
+
+/* ===== TERMINAL LOG ===== */
+.terminal {
+background: #000;
+border: 1px solid var(–border);
+border-radius: 4px;
+padding: 16px;
+margin-bottom: 28px;
+font-family: var(–font-mono);
+font-size: 0.72rem;
+max-height: 200px;
+overflow-y: auto;
+animation: fadeUp 0.8s 0.9s ease both;
+}
+
+.terminal::-webkit-scrollbar { width: 4px; }
+.terminal::-webkit-scrollbar-track { background: #000; }
+.terminal::-webkit-scrollbar-thumb { background: var(–border); }
+
+.log-line { padding: 2px 0; line-height: 1.6; }
+.log-line .ts { color: var(–dim); }
+.log-line .ok { color: var(–accent3); }
+.log-line .info { color: var(–accent); }
+.log-line .warn { color: var(–accent2); }
+.log-line .val { color: #fff; font-weight: 600; }
+
+/* ===== FOOTER ===== */
+footer {
+border-top: 1px solid var(–border);
+padding: 20px 0;
+display: flex;
+justify-content: space-between;
+align-items: center;
+font-family: var(–font-mono);
+font-size: 0.65rem;
+color: var(–dim);
+animation: fadeUp 0.8s 1s ease both;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeDown {
+from { opacity: 0; transform: translateY(-20px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(20px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== CIRCUIT DISPLAY ===== */
+.circuit-display {
+font-family: var(–font-mono);
+font-size: 0.8rem;
+color: var(–accent);
+padding: 16px;
+background: rgba(0,212,255,0.03);
+border: 1px solid rgba(0,212,255,0.1);
+border-radius: 3px;
+margin-top: 12px;
+line-height: 2;
+white-space: pre;
+}
+
+.circuit-display .gate-h { color: var(–accent2); font-weight: 700; }
+.circuit-display .gate-rz { color: var(–accent3); font-weight: 700; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+.controls-panel { grid-template-columns: 1fr; }
+.main-grid { grid-template-columns: 1fr; }
+.chart-row { grid-template-columns: 1fr; }
+}
+</style>
+
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<div class="app-wrapper">
+
+  <!-- HEADER -->
+
+  <header>
+    <div class="logo-block">
+      <div class="atom-icon">
+        <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="26" cy="26" rx="24" ry="9" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+          <ellipse cx="26" cy="26" rx="24" ry="9" stroke="#00d4ff" stroke-width="1.5" fill="none" transform="rotate(60 26 26)"/>
+          <ellipse cx="26" cy="26" rx="24" ry="9" stroke="#00d4ff" stroke-width="1.5" fill="none" transform="rotate(120 26 26)"/>
+          <circle cx="26" cy="26" r="4" fill="#00d4ff"/>
+          <circle cx="50" cy="26" r="2" fill="#ff6b00"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <h1>Procesador Nación Abraham</h1>
+        <p>Sistema de Computación Cuántica v2.4.1</p>
+      </div>
+    </div>
+    <div class="header-status">
+      <span class="status-dot"></span>
+      SISTEMA ACTIVO — QUBIT ESTABLE
+    </div>
+  </header>
+
+  <!-- CONTROLS -->
+
+  <div class="controls-panel">
+    <div class="ctrl-card">
+      <div class="ctrl-label">
+        <span>Temperatura del Sistema</span>
+        <span style="color:var(--accent)">K</span>
+      </div>
+      <div class="ctrl-value" id="temp-display">298.0</div>
+      <input type="range" id="temp-slider" min="10" max="350" value="298" step="1">
+      <div class="ctrl-subtext">Rango: 10K (criogénico) — 350K (alto calor)</div>
+    </div>
+    <div class="ctrl-card">
+      <div class="ctrl-label">
+        <span>Ángulo de Rotación RZ</span>
+        <span style="color:var(--accent3)">°</span>
+      </div>
+      <div class="ctrl-value" id="angle-display" style="color:var(--accent3)">142.37</div>
+      <input type="range" id="angle-slider" min="0" max="360" value="142.37" step="0.01">
+      <div class="ctrl-subtext">ángulo_h del procesador</div>
+    </div>
+    <div class="ctrl-card">
+      <div class="ctrl-label">
+        <span>Shots de Medición</span>
+        <span style="color:var(--accent2)">n</span>
+      </div>
+      <div class="ctrl-value" id="shots-display" style="color:var(--accent2)">2048</div>
+      <input type="range" id="shots-slider" min="128" max="8192" value="2048" step="128">
+      <div class="ctrl-subtext">Repeticiones del experimento cuántico</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+
+  <div class="main-grid">
+    <!-- Bloch Sphere -->
+    <div class="chart-panel">
+      <div class="panel-header">
+        <div class="panel-title">Estado Cuántico — Esfera de Bloch 3D</div>
+        <div class="panel-tag">VISUALIZACIÓN EN TIEMPO REAL</div>
+      </div>
+      <canvas id="bloch-canvas" width="560" height="300"></canvas>
+      <div class="circuit-display" id="circuit-viz">q[0] ──[<span class="gate-rz">RZ(2.484)</span>]──[<span class="gate-h">H</span>]──●──</div>
+    </div>
+
+```
+<!-- Metrics -->
+<div class="metrics-panel">
+  <div class="metric-card">
+    <span class="metric-icon">⚛</span>
+    <div class="metric-name">Fidelidad Cuántica</div>
+    <div class="metric-val green" id="met-fidelity">0.99847</div>
+    <div class="metric-bar-track">
+      <div class="metric-bar-fill" id="bar-fidelity" style="width:99.847%;background:var(--accent3)"></div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <span class="metric-icon">❄</span>
+    <div class="metric-name">Consumo Refrigeración</div>
+    <div class="metric-val orange" id="met-recursos">10.60 L/1k</div>
+    <div class="metric-bar-track">
+      <div class="metric-bar-fill" id="bar-recursos" style="width:11.2%;background:var(--accent2)"></div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <span class="metric-icon">📊</span>
+    <div class="metric-name">Prob. Estado |0⟩</div>
+    <div class="metric-val cyan" id="met-p0">~50.0%</div>
+    <div class="metric-bar-track">
+      <div class="metric-bar-fill" id="bar-p0" style="width:50%;background:var(--accent)"></div>
+    </div>
+  </div>
+  <div class="metric-card">
+    <span class="metric-icon">🌡</span>
+    <div class="metric-name">T1 / T2 (Decoherencia)</div>
+    <div class="metric-val white">50 / 40 μs</div>
+  </div>
+  <div class="metric-card">
+    <span class="metric-icon">⚡</span>
+    <div class="metric-name">Ahorro vs Criogénico</div>
+    <div class="metric-val green" id="met-ahorro">88.8%</div>
+    <div class="metric-bar-track">
+      <div class="metric-bar-fill" id="bar-ahorro" style="width:88.8%;background:var(--accent3)"></div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- CHARTS ROW -->
+
+  <div class="chart-row">
+    <!-- Fidelity vs Temp -->
+    <div class="chart-panel">
+      <div class="panel-header">
+        <div class="panel-title">Fidelidad vs Temperatura</div>
+        <div class="panel-tag">ESTABILIDAD TÉRMICA</div>
+      </div>
+      <canvas id="fid-chart" width="580" height="220"></canvas>
+    </div>
+
+```
+<!-- Histogram -->
+<div class="chart-panel">
+  <div class="panel-header">
+    <div class="panel-title">Distribución de Mediciones</div>
+    <div class="panel-tag" id="shots-tag">2048 SHOTS</div>
+  </div>
+  <canvas id="hist-chart" width="580" height="220"></canvas>
+</div>
+```
+
+  </div>
+
+  <!-- COMPARE TABLE -->
+
+  <div class="compare-section">
+    <div class="panel-header">
+      <div class="panel-title">Análisis Comparativo — Tecnologías Cuánticas</div>
+      <div class="panel-tag">BENCHMARKING</div>
+    </div>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Sistema</th>
+          <th>Tecnología</th>
+          <th>Fidelidad @ 298K</th>
+          <th>T. Operación</th>
+          <th>Consumo Refrig.</th>
+          <th>Índice</th>
+        </tr>
+      </thead>
+      <tbody id="compare-body"></tbody>
+    </table>
+  </div>
+
+  <!-- RUN BUTTON -->
+
+  <div class="run-section">
+    <button class="run-btn" id="run-btn" onclick="runSimulation()">
+      <span id="run-label">▶ EJECUTAR SIMULACIÓN</span>
+    </button>
+  </div>
+
+  <!-- TERMINAL LOG -->
+
+  <div class="terminal" id="terminal-log">
+    <div class="log-line"><span class="ts">[00:00:00]</span> <span class="ok">[INIT]</span> Procesador Nación Abraham cargado correctamente.</div>
+    <div class="log-line"><span class="ts">[00:00:00]</span> <span class="info">[SYS]</span> Qiskit Aer backend inicializado — qasm_simulator</div>
+    <div class="log-line"><span class="ts">[00:00:00]</span> <span class="info">[SYS]</span> Modelo de ruido térmico T1=50μs T2=40μs configurado</div>
+    <div class="log-line"><span class="ts">[00:00:00]</span> <span class="ok">[READY]</span> Sistema listo. Ajusta parámetros y ejecuta simulación.</div>
+  </div>
+
+  <footer>
+    <span>Procesador Nación Abraham © 2025 — Sistema Cuántico de Alta Fidelidad</span>
+    <span id="footer-time">T=298K | θ=142.37° | shots=2048</span>
+  </footer>
+
+</div>
+
+<script>
+// ===========================
+// PARTICLE SYSTEM
+// ===========================
+const pCanvas = document.getElementById('particles');
+const pCtx = pCanvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() {
+  pCanvas.width = window.innerWidth;
+  pCanvas.height = window.innerHeight;
+}
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * pCanvas.width;
+    this.y = Math.random() * pCanvas.height;
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.vy = -Math.random() * 0.5 - 0.1;
+    this.alpha = Math.random() * 0.4 + 0.1;
+    this.size = Math.random() * 1.5 + 0.3;
+    this.color = Math.random() > 0.7 ? '#ff6b00' : '#00d4ff';
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    this.alpha -= 0.001;
+    if (this.alpha <= 0 || this.y < 0) this.reset();
+  }
+  draw() {
+    pCtx.globalAlpha = this.alpha;
+    pCtx.fillStyle = this.color;
+    pCtx.beginPath();
+    pCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    pCtx.fill();
+  }
+}
+
+resizeCanvas();
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function animParticles() {
+  pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+window.addEventListener('resize', resizeCanvas);
+
+// ===========================
+// QUANTUM SIMULATION (JS)
+// ===========================
+let currentAngle = 142.37;
+let currentTemp = 298.0;
+let currentShots = 2048;
+let animFrame = null;
+
+function gaussianNoise(mean, std) {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return mean + std * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function simulateQuantum(tempK, angleH, shots) {
+  // Thermal noise model (simplified)
+  const t1 = 50000e-9, t2 = 40000e-9, tGate = 100e-9;
+  const noiseT1 = 1 - Math.exp(-tGate / t1);
+  const noiseT2 = 1 - Math.exp(-tGate / t2);
+  const baseFidelity = 1 - (noiseT1 + noiseT2) / 2;
+
+  // Temperature correction: higher temp degrades coherence
+  const tempFactor = 1 - Math.max(0, (tempK - 10) * 0.000015);
+  const fidelity = Math.min(0.9999, baseFidelity * tempFactor + gaussianNoise(0, 0.0003));
+
+  // Bloch sphere state after RZ(angle) + H
+  const theta = angleH * Math.PI / 180;
+  // After RZ: |0> -> |0> but phase shifted; after H: superposition
+  // H|0> = (|0>+|1>)/sqrt(2), so nominally 50/50 but RZ adds phase
+  const p0ideal = 0.5 + 0.5 * Math.cos(theta / 2) * Math.sin(theta / 2) * 0.1;
+  const p0 = Math.max(0.01, Math.min(0.99, p0ideal + gaussianNoise(0, 0.02)));
+  const p1 = 1 - p0;
+
+  const c0 = Math.round(p0 * shots);
+  const c1 = shots - c0;
+
+  const recursos = Math.max(0, 100 - tempK * 0.3) + gaussianNoise(0, 0.3);
+
+  // Bloch vector
+  const phi = theta;
+  const thetaBloch = Math.acos(p0 - p1);
+  const bx = Math.sin(thetaBloch) * Math.cos(phi);
+  const by = Math.sin(thetaBloch) * Math.sin(phi);
+  const bz = Math.cos(thetaBloch);
+
+  return { fidelity: Math.max(0.98, fidelity), p0, p1, c0, c1, recursos: Math.max(0, recursos), bx, by, bz, phi, thetaBloch };
+}
+
+// ===========================
+// BLOCH SPHERE (3D on 2D)
+// ===========================
+let blochAngle = 0;
+let blochResult = null;
+
+function drawBloch(res) {
+  const canvas = document.getElementById('bloch-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(W, H) * 0.38;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background glow
+  const radGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+  radGrad.addColorStop(0, 'rgba(0,212,255,0.04)');
+  radGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = radGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Sphere outline (ellipse for 3D feel)
+  ctx.strokeStyle = 'rgba(0,212,255,0.2)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Equator ellipse (perspective)
+  ctx.strokeStyle = 'rgba(0,212,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, R, R * 0.28, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Meridian
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, R * 0.28, R, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Axes
+  const axisStyle = (col) => { ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.setLineDash([4, 6]); };
+
+  axisStyle('rgba(0,212,255,0.25)');
+  ctx.beginPath(); ctx.moveTo(cx, cy - R - 12); ctx.lineTo(cx, cy + R + 12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - R - 12, cy); ctx.lineTo(cx + R + 12, cy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Axis labels
+  ctx.font = '600 12px "Exo 2", sans-serif';
+  ctx.fillStyle = 'rgba(0,212,255,0.5)';
+  ctx.fillText('|0⟩', cx + 6, cy - R - 6);
+  ctx.fillText('|1⟩', cx + 6, cy + R + 16);
+  ctx.fillText('+x', cx + R + 6, cy + 4);
+  ctx.fillText('-x', cx - R - 24, cy + 4);
+
+  if (!res) return;
+
+  // Bloch vector projection (2D: x=bx, y=-bz for standard orientation)
+  const vx = res.bx * Math.cos(blochAngle) - res.by * Math.sin(blochAngle);
+  const vz = res.bz;
+  const projX = cx + vx * R;
+  const projY = cy - vz * R;
+
+  // Shadow on equator
+  ctx.strokeStyle = 'rgba(255,107,0,0.25)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.moveTo(projX, projY);
+  ctx.lineTo(cx + vx * R, cy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Trajectory arc
+  ctx.strokeStyle = 'rgba(0,212,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let a = 0; a <= Math.PI * 2; a += 0.05) {
+    const px = cx + res.bx * Math.cos(a) * R * 0.6;
+    const py = cy - res.bz * R;
+    if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // Main vector
+  const grad = ctx.createLinearGradient(cx, cy, projX, projY);
+  grad.addColorStop(0, 'rgba(255,107,0,0.2)');
+  grad.addColorStop(1, '#ff6b00');
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(projX, projY);
+  ctx.stroke();
+
+  // Arrowhead
+  const dx = projX - cx, dy = projY - cy;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const nx = dx / len, ny = dy / len;
+  const ax = projX - nx * 12, ay = projY - ny * 12;
+  ctx.fillStyle = '#ff6b00';
+  ctx.beginPath();
+  ctx.moveTo(projX, projY);
+  ctx.lineTo(ax - ny * 6, ay + nx * 6);
+  ctx.lineTo(ax + ny * 6, ay - nx * 6);
+  ctx.closePath();
+  ctx.fill();
+
+  // Endpoint glow
+  ctx.fillStyle = '#ff6b00';
+  ctx.shadowBlur = 14;
+  ctx.shadowColor = '#ff6b00';
+  ctx.beginPath();
+  ctx.arc(projX, projY, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Center dot
+  ctx.fillStyle = 'rgba(0,212,255,0.5)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Coords label
+  ctx.font = '11px "Share Tech Mono", monospace';
+  ctx.fillStyle = 'rgba(255,107,0,0.8)';
+  ctx.fillText(`(${res.bx.toFixed(3)}, ${res.by.toFixed(3)}, ${res.bz.toFixed(3)})`, projX + 8, projY - 8);
+}
+
+function animateBloch() {
+  blochAngle += 0.008;
+  if (blochResult) drawBloch(blochResult);
+  requestAnimationFrame(animateBloch);
+}
+animateBloch();
+
+// ===========================
+// FIDELITY vs TEMP CHART
+// ===========================
+function drawFidelityChart(highlightTemp) {
+  const canvas = document.getElementById('fid-chart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { t: 20, r: 20, b: 40, l: 55 };
+  const cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const temps = [];
+  const fids = [];
+  for (let t = 10; t <= 350; t += 5) {
+    temps.push(t);
+    const res = simulateQuantum(t, currentAngle, 512);
+    fids.push(res.fidelity);
+  }
+
+  const minFid = 0.98, maxFid = 1.001;
+  const xScale = (t) => pad.l + ((t - 10) / 340) * cW;
+  const yScale = (f) => pad.t + cH - ((f - minFid) / (maxFid - minFid)) * cH;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(13,42,74,0.8)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.t + (i / 5) * cH;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cW, y); ctx.stroke();
+    const fVal = maxFid - (i / 5) * (maxFid - minFid);
+    ctx.fillStyle = 'rgba(74,122,155,0.8)';
+    ctx.font = '10px "Share Tech Mono"';
+    ctx.textAlign = 'right';
+    ctx.fillText(fVal.toFixed(3), pad.l - 6, y + 3);
+  }
+  for (let t = 50; t <= 350; t += 50) {
+    const x = xScale(t);
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + cH); ctx.stroke();
+    ctx.fillStyle = 'rgba(74,122,155,0.8)';
+    ctx.textAlign = 'center';
+    ctx.fillText(t + 'K', x, pad.t + cH + 14);
+  }
+
+  // Safe zone fill
+  const safeY = yScale(0.99);
+  ctx.fillStyle = 'rgba(57,255,20,0.05)';
+  ctx.fillRect(pad.l, pad.t, cW, safeY - pad.t);
+
+  // Threshold line
+  ctx.strokeStyle = 'rgba(255,107,0,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(pad.l, safeY);
+  ctx.lineTo(pad.l + cW, safeY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,107,0,0.7)';
+  ctx.font = '10px "Share Tech Mono"';
+  ctx.textAlign = 'left';
+  ctx.fillText('99% umbral', pad.l + 4, safeY - 4);
+
+  // Fidelity line (glow)
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = '#00d4ff';
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  temps.forEach((t, i) => {
+    const x = xScale(t), y = yScale(fids[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Gradient fill under line
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + cH);
+  grad.addColorStop(0, 'rgba(0,212,255,0.12)');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  temps.forEach((t, i) => {
+    const x = xScale(t), y = yScale(fids[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo(xScale(temps[temps.length - 1]), pad.t + cH);
+  ctx.lineTo(xScale(temps[0]), pad.t + cH);
+  ctx.closePath();
+  ctx.fill();
+
+  // Current temp marker
+  const hx = xScale(highlightTemp);
+  const hy = yScale(simulateQuantum(highlightTemp, currentAngle, 512).fidelity);
+  ctx.strokeStyle = 'rgba(255,107,0,0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.moveTo(hx, pad.t); ctx.lineTo(hx, pad.t + cH); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = '#ff6b00';
+  ctx.fillStyle = '#ff6b00';
+  ctx.beginPath();
+  ctx.arc(hx, hy, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,107,0,0.9)';
+  ctx.font = '10px "Share Tech Mono"';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${highlightTemp}K`, hx, pad.t + cH + 28);
+
+  // Axis labels
+  ctx.fillStyle = 'rgba(74,122,155,0.8)';
+  ctx.font = '11px "Exo 2"';
+  ctx.textAlign = 'center';
+  ctx.fillText('Temperatura (K)', pad.l + cW / 2, H - 4);
+}
+
+// ===========================
+// HISTOGRAM CHART
+// ===========================
+function drawHistogram(c0, c1, shots) {
+  const canvas = document.getElementById('hist-chart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { t: 24, r: 30, b: 50, l: 55 };
+
+  ctx.clearRect(0, 0, W, H);
+
+  const maxVal = Math.max(c0, c1) * 1.15;
+  const barW = (W - pad.l - pad.r) / 3;
+  const cH = H - pad.t - pad.b;
+
+  const bars = [
+    { label: '|0⟩', count: c0, color: '#00d4ff', glow: 'rgba(0,212,255,0.4)' },
+    { label: '|1⟩', count: c1, color: '#ff6b00', glow: 'rgba(255,107,0,0.4)' }
+  ];
+
+  // Grid
+  ctx.strokeStyle = 'rgba(13,42,74,0.8)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (i / 4) * cH;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    const val = Math.round(maxVal * (1 - i / 4));
+    ctx.fillStyle = 'rgba(74,122,155,0.8)';
+    ctx.font = '10px "Share Tech Mono"';
+    ctx.textAlign = 'right';
+    ctx.fillText(val, pad.l - 6, y + 3);
+  }
+
+  bars.forEach((bar, i) => {
+    const x = pad.l + i * barW * 1.5 + barW * 0.35;
+    const bH = (bar.count / maxVal) * cH;
+    const y = pad.t + cH - bH;
+
+    // Glow effect
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = bar.glow;
+
+    // Gradient bar
+    const grad = ctx.createLinearGradient(x, y, x, y + bH);
+    grad.addColorStop(0, bar.color);
+    grad.addColorStop(1, bar.color + '44');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, barW * 0.8, bH);
+    ctx.shadowBlur = 0;
+
+    // Border
+    ctx.strokeStyle = bar.color;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, barW * 0.8, bH);
+
+    // Label
+    ctx.fillStyle = bar.color;
+    ctx.font = 'bold 14px "Exo 2"';
+    ctx.textAlign = 'center';
+    ctx.fillText(bar.label, x + barW * 0.4, pad.t + cH + 16);
+
+    // Count
+    ctx.fillStyle = '#fff';
+    ctx.font = '11px "Share Tech Mono"';
+    ctx.fillText(bar.count, x + barW * 0.4, y - 6);
+
+    // Percentage
+    const pct = ((bar.count / shots) * 100).toFixed(1);
+    ctx.fillStyle = bar.color;
+    ctx.font = '10px "Share Tech Mono"';
+    ctx.fillText(pct + '%', x + barW * 0.4, y - 18);
+  });
+
+  // X-axis
+  ctx.strokeStyle = 'rgba(0,212,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t + cH);
+  ctx.lineTo(W - pad.r, pad.t + cH);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(74,122,155,0.8)';
+  ctx.font = '11px "Exo 2"';
+  ctx.textAlign = 'center';
+  ctx.fillText('Estado del Qubit', W / 2, H - 4);
+}
+
+// ===========================
+// COMPARE TABLE
+// ===========================
+const compareData = [
+  { name: 'IBM/Google', tech: 'Superconductor', fid: 0.85, temp: '~15 mK', rec: 95, isHighlight: false },
+  { name: 'Honeywell', tech: 'Ion Trap', fid: 0.92, temp: '~4 K', rec: 78, isHighlight: false },
+  { name: 'Intel', tech: 'Silicio', fid: 0.88, temp: '~4 K', rec: 82, isHighlight: false },
+  { name: 'Nación Abraham', tech: 'Tu Sistema', fid: null, temp: 'Ambiente', rec: null, isHighlight: true },
+];
+
+function buildCompareTable(currentFid, currentRec) {
+  const tbody = document.getElementById('compare-body');
+  const barColors = ['#e74c3c', '#3498db', '#2ecc71', '#ff6b00'];
+
+  tbody.innerHTML = '';
+  compareData.forEach((row, i) => {
+    const fid = row.isHighlight ? currentFid : row.fid;
+    const rec = row.isHighlight ? currentRec : row.rec;
+    const fidPct = (fid * 100).toFixed(4);
+    const savePct = row.isHighlight ? '— referencia' : `-${(((rec - currentRec) / rec) * 100).toFixed(0)}% ahorro`;
+
+    const tr = document.createElement('tr');
+    if (row.isHighlight) tr.className = 'highlight';
+
+    tr.innerHTML = `
+      <td>${row.name}</td>
+      <td><span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--dim)">${row.tech}</span></td>
+      <td>
+        <div class="fid-bar">
+          <div class="fid-bar-track" style="width:120px">
+            <div class="fid-bar-fill" style="width:${fidPct}%;background:${barColors[i]}"></div>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:0.78rem;color:${barColors[i]}">${fidPct}%</span>
+        </div>
+      </td>
+      <td style="font-family:var(--font-mono);font-size:0.8rem">${row.temp}</td>
+      <td style="font-family:var(--font-mono);font-size:0.8rem;color:${row.isHighlight ? 'var(--accent2)' : 'var(--text)'}">${rec.toFixed(1)} L/1k</td>
+      <td style="font-family:var(--font-mono);font-size:0.75rem;color:${row.isHighlight ? 'var(--accent3)' : 'var(--dim)'}">${savePct}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===========================
+// TERMINAL LOG
+// ===========================
+function log(type, msg) {
+  const term = document.getElementById('terminal-log');
+  const now = new Date();
+  const ts = [now.getHours(), now.getMinutes(), now.getSeconds()]
+    .map(v => v.toString().padStart(2, '0')).join(':');
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="ts">[${ts}]</span> <span class="${type}">[${type.toUpperCase()}]</span> ${msg}`;
+  term.appendChild(line);
+  term.scrollTop = term.scrollHeight;
+}
+
+// ===========================
+// UPDATE UI
+// ===========================
+function updateUI(res) {
+  blochResult = res;
+
+  // Metrics
+  document.getElementById('met-fidelity').textContent = res.fidelity.toFixed(6);
+  document.getElementById('bar-fidelity').style.width = (res.fidelity * 100).toFixed(3) + '%';
+
+  const recPct = Math.min(100, (res.recursos / 100) * 100);
+  document.getElementById('met-recursos').textContent = res.recursos.toFixed(2) + ' L/1k';
+  document.getElementById('bar-recursos').style.width = recPct.toFixed(1) + '%';
+
+  const p0Pct = (res.p0 * 100).toFixed(1);
+  document.getElementById('met-p0').textContent = '~' + p0Pct + '%';
+  document.getElementById('bar-p0').style.width = p0Pct + '%';
+
+  const ahorroBase = 95;
+  const ahorro = Math.max(0, ((ahorroBase - res.recursos) / ahorroBase) * 100);
+  document.getElementById('met-ahorro').textContent = ahorro.toFixed(1) + '%';
+  document.getElementById('bar-ahorro').style.width = Math.max(0, ahorro).toFixed(1) + '%';
+
+  // Circuit viz
+  const angRad = (currentAngle * Math.PI / 180).toFixed(3);
+  document.getElementById('circuit-viz').innerHTML =
+    `q[0] ──[<span class="gate-rz">RZ(${angRad})</span>]──[<span class="gate-h">H</span>]──●──`;
+
+  // Charts
+  drawFidelityChart(currentTemp);
+  drawHistogram(res.c0, res.c1, currentShots);
+  buildCompareTable(res.fidelity, res.recursos);
+
+  // Footer
+  document.getElementById('footer-time').textContent =
+    `T=${currentTemp}K | θ=${currentAngle.toFixed(2)}° | shots=${currentShots}`;
+  document.getElementById('shots-tag').textContent = `${currentShots} SHOTS`;
+}
+
+// ===========================
+// SIMULATION RUNNER
+// ===========================
+function runSimulation() {
+  const btn = document.getElementById('run-btn');
+  const label = document.getElementById('run-label');
+
+  btn.classList.add('running');
+  label.textContent = '⟳ SIMULANDO...';
+
+  log('info', `Iniciando circuito: RZ(${(currentAngle * Math.PI / 180).toFixed(4)}) + H`);
+  log('info', `Parámetros: T=${currentTemp}K, shots=${currentShots}, θ=${currentAngle}°`);
+
+  setTimeout(() => {
+    const res = simulateQuantum(currentTemp, currentAngle, currentShots);
+    blochResult = res;
+    updateUI(res);
+
+    log('ok', `Fidelidad cuántica: ${res.fidelity.toFixed(8)}`);
+    log('info', `Distribución: |0⟩=${res.c0} (${(res.p0 * 100).toFixed(1)}%) | |1⟩=${res.c1} (${(res.p1 * 100).toFixed(1)}%)`);
+    log('warn', `Consumo refrigeración: ${res.recursos.toFixed(2)} L/1000 shots`);
+    log('ok', `Vector de Bloch: (${res.bx.toFixed(3)}, ${res.by.toFixed(3)}, ${res.bz.toFixed(3)})`);
+    log('ok', 'Simulación completada exitosamente.');
+
+    btn.classList.remove('running');
+    label.textContent = '▶ EJECUTAR SIMULACIÓN';
+  }, 800 + Math.random() * 600);
+}
+
+// ===========================
+// SLIDERS
+// ===========================
+document.getElementById('temp-slider').addEventListener('input', function () {
+  currentTemp = parseFloat(this.value);
+  document.getElementById('temp-display').textContent = currentTemp.toFixed(1);
+  const res = simulateQuantum(currentTemp, currentAngle, currentShots);
+  updateUI(res);
+});
+
+document.getElementById('angle-slider').addEventListener('input', function () {
+  currentAngle = parseFloat(this.value);
+  document.getElementById('angle-display').textContent = currentAngle.toFixed(2);
+  const res = simulateQuantum(currentTemp, currentAngle, currentShots);
+  updateUI(res);
+});
+
+document.getElementById('shots-slider').addEventListener('input', function () {
+  currentShots = parseInt(this.value);
+  document.getElementById('shots-display').textContent = currentShots;
+  const res = simulateQuantum(currentTemp, currentAngle, currentShots);
+  updateUI(res);
+});
+
+// ===========================
+// INITIAL RENDER
+// ===========================
+const initialRes = simulateQuantum(298, 142.37, 2048);
+updateUI(initialRes);
+log('ok', 'Renderizado inicial completado. Sistema listo.');
+</script>
+
+</body>
+</html>
