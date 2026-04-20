@@ -1,0 +1,543 @@
+import { useState, useEffect, useRef } from “react”;
+
+// ─── Constantes Fundamentales ─────────────────────────────────────────────
+const PHI = (1 + Math.sqrt(5)) / 2;
+const GOLDEN_ANGLE_DEG = 360 / (PHI * PHI);
+const TICK_FREQ = 963 / 60;
+
+// ─── Motor de Interacción Simpática ───────────────────────────────────────
+const QUBITS_DEF = [
+{ id: “Q1”, color: “#ff3b3b”, phase: 0 },
+{ id: “Q2”, color: “#39ff14”, phase: (2 * Math.PI) / 3 },
+{ id: “Q3”, color: “#00e5ff”, phase: (4 * Math.PI) / 3 },
+];
+
+function getEntangledVectors(tick, cx, cy, r) {
+const baseAngle = (tick * TICK_FREQ) % (2 * Math.PI);
+return QUBITS_DEF.map((q) => {
+const theta = Math.acos(Math.cos((baseAngle + q.phase) / PHI));
+const phi = (baseAngle + q.phase) * PHI;
+const bx = cx + r * Math.sin(theta) * Math.cos(phi);
+const by = cy - r * Math.cos(theta);
+return { …q, bx, by, theta, phi };
+});
+}
+
+// ─── Quantum Math ─────────────────────────────────────────────────────────
+function complexMul([ar, ai], [br, bi]) { return [ar * br - ai * bi, ar * bi + ai * br]; }
+function complexAdd([ar, ai], [br, bi]) { return [ar + br, ai + bi]; }
+function norm([r, i]) { return Math.sqrt(r * r + i * i); }
+
+function applyRZ(state, theta) {
+const [a, b] = state;
+const cos = Math.cos(theta / 2), sin = Math.sin(theta / 2);
+return [complexMul(a, [cos, -sin]), complexMul(b, [cos, sin])];
+}
+function applyH(state) {
+const [a, b] = state;
+const s = 1 / Math.sqrt(2);
+return [
+complexAdd(complexMul(a, [s, 0]), complexMul(b, [s, 0])),
+complexAdd(complexMul(a, [s, 0]), complexMul(b, [-s, 0])),
+];
+}
+function stateFidelity(ideal, noisy) {
+const overlap = complexAdd(
+complexMul(ideal[0], [noisy[0][0], -noisy[0][1]]),
+complexMul(ideal[1], [noisy[1][0], -noisy[1][1]])
+);
+return norm(overlap) ** 2;
+}
+
+function runSimulation(tempK, shots = 4096) {
+const thetaRad = GOLDEN_ANGLE_DEG * (Math.PI / 180);
+let ideal = [[1, 0], [0, 0]];
+ideal = applyRZ(ideal, thetaRad);
+ideal = applyH(ideal);
+const p0_ideal = norm(ideal[0]) ** 2;
+const t1 = 50000 * PHI, t2 = 40000 * PHI;
+const gateTime = 1 / (963.0 * 1e6);
+const gamma1 = 1 - Math.exp(-gateTime / t1);
+const gamma2 = 1 - Math.exp(-gateTime / t2);
+let counts0 = 0, counts1 = 0;
+for (let i = 0; i < shots; i++) {
+const noisyP0 = Math.max(0, Math.min(1,
+p0_ideal + (Math.random() - 0.5) * gamma2 * 0.1 + (Math.random() - 0.5) * gamma1 * 0.1
+));
+if (Math.random() < noisyP0) counts0++; else counts1++;
+}
+const prob0 = counts0 / shots, prob1 = counts1 / shots;
+const noisy = [[Math.sqrt(prob0), 0], [Math.sqrt(prob1), 0]];
+return {
+fidelity: stateFidelity(ideal, noisy),
+recursos: Math.max(0.5, (tempK / PHI) * 0.05),
+counts: { “0”: counts0, “1”: counts1 },
+idealState: ideal, p0_ideal, p1_ideal: 1 - p0_ideal, prob0, prob1, t1, t2,
+};
+}
+
+// ─── Entangled Bloch Sphere ────────────────────────────────────────────────
+function EntangledBlochSphere({ tick, idealState }) {
+const CX = 110, CY = 110, R = 80;
+const TRAIL = 20;
+const trailsRef = useRef(QUBITS_DEF.map(() => []));
+const vectors = getEntangledVectors(tick, CX, CY, R);
+
+vectors.forEach((v, i) => {
+trailsRef.current[i].push({ x: v.bx, y: v.by });
+if (trailsRef.current[i].length > TRAIL) trailsRef.current[i].shift();
+});
+
+let ibx = CX, iby = CY - R;
+if (idealState) {
+const p0 = norm(idealState[0]) ** 2;
+const th = 2 * Math.acos(Math.min(1, Math.sqrt(p0)));
+const ph = Math.atan2(idealState[0][1], idealState[0][0]) - Math.atan2(idealState[1][1], idealState[1][0]);
+ibx = CX + R * Math.sin(th) * Math.cos(ph);
+iby = CY - R * Math.cos(th);
+}
+
+return (
+<svg width="220" height="220" viewBox="0 0 220 220">
+<defs>
+<radialGradient id="sg" cx="38%" cy="32%">
+<stop offset="0%" stopColor="#0d2a44" />
+<stop offset="100%" stopColor="#020c18" />
+</radialGradient>
+<filter id="glow2">
+<feGaussianBlur stdDeviation="2.5" result="b" />
+<feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+</filter>
+</defs>
+<circle cx={CX} cy={CY} r={R} fill="url(#sg)" stroke="#00e5ff" strokeWidth="0.7" opacity="0.85" />
+{[0, 60, 120].map(a => (
+<ellipse key={a} cx={CX} cy={CY} rx={R} ry={R * 0.3}
+fill=“none” stroke=”#00e5ff22” strokeWidth=“0.5” strokeDasharray=“2,4”
+transform={`rotate(${a} ${CX} ${CY})`} />
+))}
+<ellipse cx={CX} cy={CY} rx={R} ry={R * 0.28} fill=“none” stroke=”#00e5ff” strokeWidth=“0.5” strokeDasharray=“3,3” opacity=“0.3” />
+<line x1={CX} y1={CY - R - 10} x2={CX} y2={CY + R + 10} stroke=”#fff” strokeWidth=“0.4” opacity=“0.15” />
+<line x1={CX - R - 10} y1={CY} x2={CX + R + 10} y2={CY} stroke=”#fff” strokeWidth=“0.4” opacity=“0.15” />
+<text x={CX + 4} y={CY - R - 11} fill=”#c8e6f5” fontSize=“9” fontFamily=“monospace” opacity=“0.6”>|0⟩</text>
+<text x={CX + 4} y={CY + R + 19} fill=”#c8e6f5” fontSize=“9” fontFamily=“monospace” opacity=“0.6”>|1⟩</text>
+<polygon points={vectors.map(v => `${v.bx},${v.by}`).join(” “)}
+fill=“none” stroke=”#ffffff22” strokeWidth=“0.7” strokeDasharray=“2,3” />
+{vectors.map((v, qi) => (
+<g key={v.id}>
+{trailsRef.current[qi].map((pt, ti) => (
+<circle key={ti} cx={pt.x} cy={pt.y} r={1.5} fill={v.color} opacity={(ti / TRAIL) * 0.45} />
+))}
+<line x1={CX} y1={CY} x2={v.bx} y2={v.by} stroke={v.color} strokeWidth="1.8" opacity="0.85" filter="url(#glow2)" />
+<circle cx={v.bx} cy={v.by} r="5" fill={v.color} filter="url(#glow2)" />
+<circle cx={v.bx} cy={v.by} r="9" fill="none" stroke={v.color} strokeWidth="0.8" opacity="0.35" />
+<text x={v.bx + 6} y={v.by - 4} fill={v.color} fontSize=“8” fontFamily=“monospace”>{v.id}</text>
+</g>
+))}
+{idealState && (
+<g>
+<line x1={CX} y1={CY} x2={ibx} y2={iby} stroke="#ff6b35" strokeWidth="2.2" strokeDasharray="4,3" opacity="0.75" />
+<circle cx={ibx} cy={iby} r="4" fill="#ff6b35" opacity="0.9" />
+<text x={ibx + 5} y={iby - 5} fill=”#ff6b35” fontSize=“8” fontFamily=“monospace”>|ψ⟩</text>
+</g>
+)}
+</svg>
+);
+}
+
+// ─── Phase Diagram ────────────────────────────────────────────────────────
+function PhaseDiagram({ tick }) {
+const CX = 70, CY = 70, R = 55;
+const vectors = QUBITS_DEF.map((q) => {
+const angle = ((tick * TICK_FREQ + q.phase)) / PHI;
+return { …q, angle };
+});
+return (
+<svg width="140" height="148" viewBox="0 0 140 148">
+<circle cx={CX} cy={CY} r={R} fill="#020c18" stroke="#0a2a40" strokeWidth="1" />
+{[0.33, 0.66, 1].map(f => (
+<circle key={f} cx={CX} cy={CY} r={R * f} fill=“none” stroke=”#0a2a40” strokeWidth=“0.5” />
+))}
+{Array.from({ length: 12 }).map((_, i) => {
+const a = (i / 12) * 2 * Math.PI;
+return <line key={i}
+x1={CX + (R - 6) * Math.cos(a)} y1={CY + (R - 6) * Math.sin(a)}
+x2={CX + R * Math.cos(a)} y2={CY + R * Math.sin(a)}
+stroke=”#0a3a5a” strokeWidth=“0.5” />;
+})}
+{vectors.map((v) => (
+<g key={v.id}>
+<line x1={CX} y1={CY}
+x2={CX + R * 0.88 * Math.cos(v.angle)} y2={CY + R * 0.88 * Math.sin(v.angle)}
+stroke={v.color} strokeWidth=“1.5” opacity=“0.85” />
+<circle cx={CX + R * 0.88 * Math.cos(v.angle)} cy={CY + R * 0.88 * Math.sin(v.angle)}
+r=“3.5” fill={v.color} />
+</g>
+))}
+<circle cx={CX} cy={CY} r="2.5" fill="#fff" opacity="0.5" />
+<text x={CX} y={148} textAnchor="middle" fill="#355a70" fontSize="8" fontFamily="monospace">DANZA ARMÓNICA φ</text>
+</svg>
+);
+}
+
+// ─── Prob Bar ─────────────────────────────────────────────────────────────
+function ProbBar({ label, value, color }) {
+return (
+<div style={{ marginBottom: 7 }}>
+<div style={{ display: “flex”, justifyContent: “space-between”, marginBottom: 2 }}>
+<span style={{ fontFamily: “monospace”, fontSize: 10, color: “#a0c4d8” }}>{label}</span>
+<span style={{ fontFamily: “monospace”, fontSize: 10, color }}>{(value * 100).toFixed(2)}%</span>
+</div>
+<div style={{ background: “#0a1a2a”, borderRadius: 3, height: 6, overflow: “hidden” }}>
+<div style={{
+width: `${Math.round(value * 100)}%`, height: “100%”,
+background: `linear-gradient(90deg, ${color}77, ${color})`,
+borderRadius: 3, transition: “width 0.5s ease”, boxShadow: `0 0 5px ${color}66`,
+}} />
+</div>
+</div>
+);
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────
+export default function ProcesadorSoberanoV27() {
+const [tempK, setTempK] = useState(298);
+const [shots, setShots] = useState(4096);
+const [result, setResult] = useState(null);
+const [running, setRunning] = useState(false);
+const [log, setLog] = useState([]);
+const [tick, setTick] = useState(0);
+const [tab, setTab] = useState(“bloch”);
+const logRef = useRef(null);
+
+useEffect(() => {
+let frame;
+const loop = () => { setTick(t => t + 1); frame = requestAnimationFrame(loop); };
+frame = requestAnimationFrame(loop);
+return () => cancelAnimationFrame(frame);
+}, []);
+
+useEffect(() => {
+if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+}, [log]);
+
+function addLog(msg) {
+setLog(l => […l.slice(-50), `[${new Date().toISOString().slice(11, 23)}] ${msg}`]);
+}
+
+function execute() {
+setRunning(true); setLog([]);
+addLog(“🔵 Inicializando ProcesadorSoberanoV27…”);
+addLog(`📐 Ángulo Áureo: φ² = ${(PHI * PHI).toFixed(6)} → θ = ${GOLDEN_ANGLE_DEG.toFixed(4)}°`);
+addLog(`🌡️  Temperatura: ${tempK}K  |  Shots: ${shots.toLocaleString()}`);
+addLog(`🔊 TICK_FREQ = 963/60 = ${TICK_FREQ.toFixed(4)} ticks/frame`);
+setTimeout(() => {
+addLog(“🔗 Motor Simpático: Q1(0°) Q2(+120°) Q3(+240°) — ENTRELAZADOS”);
+addLog(“⚙️  Circuito: |0⟩ → RZ(θ_áureo) → H”);
+addLog(“🛡️  Ruido térmico refractado (Fórmula 27) — ε = 0.1”);
+}, 300);
+setTimeout(() => {
+addLog(`🔬 T₁ = ${(50000 * PHI).toFixed(0)} µs  |  T₂ = ${(40000 * PHI).toFixed(0)} µs`);
+addLog(`📡 Ejecutando ${shots.toLocaleString()} shots...`);
+}, 700);
+setTimeout(() => {
+const res = runSimulation(tempK, shots);
+setResult(res);
+addLog(`✅ Simulación completada.`);
+addLog(`📊 |0⟩: ${res.counts["0"].toLocaleString()}  |  |1⟩: ${res.counts["1"].toLocaleString()}`);
+addLog(`🎯 Fidelidad (F27): ${res.fidelity.toFixed(10)}`);
+addLog(`⚡ Consumo Cohesión (F25): ${res.recursos.toFixed(4)} L`);
+addLog(`🚀 EVOLUCIÓN A V27 COMPLETADA`);
+setRunning(false);
+}, 1400);
+}
+
+useEffect(() => { execute(); }, []);
+
+const pulseOp = 0.4 + 0.6 * Math.abs(Math.sin(tick * 0.04));
+const liveVec = getEntangledVectors(tick, 0, 0, 1);
+
+return (
+<div style={{
+minHeight: “100vh”, background: “#020c18”, color: “#c8e6f5”,
+fontFamily: “‘Courier New’, monospace”, padding: “20px 12px”, boxSizing: “border-box”,
+}}>
+{/* Header */}
+<div style={{ textAlign: “center”, marginBottom: 22 }}>
+<div style={{
+display: “inline-block”, background: “linear-gradient(135deg, #00e5ff0c, #39ff140c)”,
+border: “1px solid #00e5ff30”, borderRadius: 12, padding: “14px 28px”,
+position: “relative”, overflow: “hidden”,
+}}>
+<div style={{
+position: “absolute”, inset: 0, pointerEvents: “none”,
+background: `radial-gradient(circle at 50% 50%, #00e5ff${Math.round(pulseOp * 16).toString(16).padStart(2, "0")} 0%, transparent 70%)`,
+}} />
+<div style={{ fontSize: 10, color: “#00e5ff”, letterSpacing: 6, marginBottom: 4 }}>MOTOR DE INTERACCIÓN SIMPÁTICA</div>
+<div style={{ fontSize: 24, fontWeight: 900, letterSpacing: 3, color: “#fff”, textShadow: “0 0 18px #00e5ff” }}>
+SOBERANO V27
+</div>
+<div style={{ display: “flex”, justifyContent: “center”, gap: 18, marginTop: 6 }}>
+{QUBITS_DEF.map(q => (
+<span key={q.id} style={{ fontSize: 9, color: q.color, letterSpacing: 2, fontWeight: 700 }}>● {q.id}</span>
+))}
+<span style={{ fontSize: 9, color: “#ff6b35”, letterSpacing: 2 }}>– |ψ⟩ IDEAL</span>
+</div>
+</div>
+</div>
+
+```
+  <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gap: 14 }}>
+
+    {/* Controls */}
+    <div style={{ background: "#050f1e", border: "1px solid #0a2a40", borderRadius: 10, padding: 18 }}>
+      <div style={{ fontSize: 10, color: "#00e5ff", letterSpacing: 3, marginBottom: 14 }}>PARÁMETROS DE CONFIGURACIÓN</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div>
+          <label style={{ fontSize: 10, color: "#6a9ab0", display: "block", marginBottom: 6 }}>
+            TEMPERATURA: <span style={{ color: "#00e5ff" }}>{tempK}K</span>
+          </label>
+          <input type="range" min="77" max="500" value={tempK} onChange={e => setTempK(+e.target.value)}
+            style={{ width: "100%", accentColor: "#00e5ff" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#2a4a60" }}>
+            <span>77K criogénico</span><span>500K caliente</span>
+          </div>
+        </div>
+        <div>
+          <label style={{ fontSize: 10, color: "#6a9ab0", display: "block", marginBottom: 6 }}>
+            SHOTS: <span style={{ color: "#39ff14" }}>{shots.toLocaleString()}</span>
+          </label>
+          <input type="range" min="256" max="16384" step="256" value={shots} onChange={e => setShots(+e.target.value)}
+            style={{ width: "100%", accentColor: "#39ff14" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#2a4a60" }}>
+            <span>256</span><span>16,384</span>
+          </div>
+        </div>
+      </div>
+      <button onClick={execute} disabled={running} style={{
+        marginTop: 14, width: "100%", padding: "11px",
+        background: running ? "#0a1a2a" : "linear-gradient(90deg, #003d5c, #005c8a)",
+        border: `1px solid ${running ? "#0a2a40" : "#00e5ff"}`, borderRadius: 8,
+        color: running ? "#355a70" : "#00e5ff", fontSize: 12,
+        fontFamily: "monospace", letterSpacing: 3,
+        cursor: running ? "not-allowed" : "pointer",
+        boxShadow: running ? "none" : "0 0 10px #00e5ff33", transition: "all 0.3s",
+      }}>
+        {running ? "⚙️  EJECUTANDO..." : "▶  EJECUTAR SIMULACIÓN"}
+      </button>
+    </div>
+
+    {/* Main two-column grid */}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+      {/* LEFT: Visualization */}
+      <div style={{ background: "#050f1e", border: "1px solid #0a2a40", borderRadius: 10, padding: 18 }}>
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+          {[["bloch", "ESFERA BLOCH"], ["phase", "DIAGRAMA FASE"], ["circuit", "CIRCUITO"]].map(([id, lbl]) => (
+            <button key={id} onClick={() => setTab(id)} style={{
+              flex: 1, padding: "5px 2px", fontSize: 8, fontFamily: "monospace", letterSpacing: 1,
+              background: tab === id ? "#002a44" : "transparent",
+              border: `1px solid ${tab === id ? "#00e5ff" : "#0a2a40"}`,
+              borderRadius: 5, color: tab === id ? "#00e5ff" : "#355a70", cursor: "pointer",
+            }}>{lbl}</button>
+          ))}
+        </div>
+
+        {tab === "bloch" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+              <EntangledBlochSphere tick={tick} idealState={result?.idealState} />
+            </div>
+            <div style={{ fontSize: 8, color: "#355a70", textAlign: "center", marginBottom: 10 }}>
+              Q1/Q2/Q3 desfase 120° · Fórmula 27 · |ψ⟩ estado ideal circuito
+            </div>
+            <div style={{ borderTop: "1px solid #0a2a40", paddingTop: 10 }}>
+              <div style={{ fontSize: 9, color: "#6a9ab0", letterSpacing: 3, marginBottom: 8 }}>LECTURAS EN TIEMPO REAL</div>
+              {liveVec.map((v) => (
+                <div key={v.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, alignItems: "center" }}>
+                  <span style={{ fontSize: 10, color: v.color, fontWeight: 700, width: 22 }}>{v.id}</span>
+                  <span style={{ fontSize: 9, color: "#4a7a90" }}>θ={v.theta.toFixed(3)}</span>
+                  <span style={{ fontSize: 9, color: "#4a7a90" }}>φ={v.phi.toFixed(3)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "phase" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <PhaseDiagram tick={tick} />
+            </div>
+            <div style={{ borderTop: "1px solid #0a2a40", paddingTop: 10 }}>
+              <div style={{ fontSize: 9, color: "#6a9ab0", letterSpacing: 3, marginBottom: 8 }}>FASES ACTUALES (÷ φ)</div>
+              {QUBITS_DEF.map((q) => {
+                const a = ((tick * TICK_FREQ + q.phase) / PHI) % (2 * Math.PI);
+                return (
+                  <div key={q.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                    <span style={{ fontSize: 10, color: q.color }}>{q.id} Δ{(q.phase * 180 / Math.PI).toFixed(0)}°</span>
+                    <span style={{ fontSize: 10, color: "#c8e6f5" }}>{(a * 180 / Math.PI).toFixed(2)}°</span>
+                  </div>
+                );
+              })}
+              <div style={{ marginTop: 8, fontSize: 9, color: "#355a70" }}>
+                TICK_FREQ={TICK_FREQ.toFixed(4)} · frame={tick}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "circuit" && (
+          <div>
+            <div style={{ fontSize: 9, color: "#6a9ab0", letterSpacing: 3, marginBottom: 10 }}>CIRCUITO PRINCIPAL</div>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 2 }}>
+              {[
+                { l: "|0⟩", w: 30, bc: "none", c: "#c8e6f5", bg: "transparent" },
+                { l: "──", w: 20, bc: "none", c: "#0a3a5a", bg: "transparent" },
+                { l: `RZ\n${GOLDEN_ANGLE_DEG.toFixed(1)}°`, w: 54, bc: "1px solid #39ff1477", c: "#39ff14", bg: "#002a10", r: 5 },
+                { l: "──", w: 20, bc: "none", c: "#0a3a5a", bg: "transparent" },
+                { l: "H", w: 34, bc: "1px solid #00e5ff77", c: "#00e5ff", bg: "#001a2e", r: 5 },
+                { l: "──", w: 20, bc: "none", c: "#0a3a5a", bg: "transparent" },
+                { l: "⊗", w: 34, bc: "1px solid #ff6b3577", c: "#ff6b35", bg: "#2a1000", r: 17 },
+              ].map((g, i) => (
+                <div key={i} style={{
+                  width: g.w, minWidth: g.w, height: g.bc !== "none" ? 36 : "auto",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: g.bg, border: g.bc, borderRadius: g.r || 0,
+                  color: g.bc !== "none" ? g.c : "#0a3a5a",
+                  textAlign: "center", whiteSpace: "pre",
+                  fontSize: (g.l || "").includes("\n") ? 8 : 11,
+                  boxShadow: g.bc !== "none" ? `0 0 5px ${g.c}33` : "none",
+                }}>{g.l}</div>
+              ))}
+            </div>
+            <div style={{ fontSize: 9, color: "#6a9ab0", letterSpacing: 3, marginBottom: 8 }}>MOTOR SIMPÁTICO</div>
+            {QUBITS_DEF.map((q) => (
+              <div key={q.id} style={{ display: "flex", alignItems: "center", marginBottom: 6, gap: 6 }}>
+                <span style={{ fontSize: 10, color: q.color, width: 22 }}>{q.id}</span>
+                <div style={{ flex: 1, height: 1, background: q.color, opacity: 0.25 }} />
+                <div style={{ padding: "2px 7px", border: `1px solid ${q.color}55`, borderRadius: 4, fontSize: 9, color: q.color, background: `${q.color}0e` }}>
+                  Δφ={+(q.phase * 180 / Math.PI).toFixed(0)}° ÷ φ
+                </div>
+                <div style={{ flex: 1, height: 1, background: q.color, opacity: 0.25 }} />
+              </div>
+            ))}
+            <div style={{ marginTop: 10, fontSize: 9, color: "#355a70", borderTop: "1px solid #0a2a40", paddingTop: 8 }}>
+              <div>ε = 0.1 · e^(-t/T₁,T₂)  |  Fórmula 27</div>
+              <div>T₁={+(50000*PHI).toFixed(0)}µs · T₂={+(40000*PHI).toFixed(0)}µs</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* RIGHT: Metrics */}
+      <div style={{
+        background: "#050f1e", border: "1px solid #0a2a40", borderRadius: 10, padding: 18,
+        display: "flex", flexDirection: "column", gap: 11,
+      }}>
+        <div style={{ fontSize: 10, color: "#00e5ff", letterSpacing: 3 }}>RESULTADOS DE MEDICIÓN</div>
+
+        {result ? (
+          <>
+            <div style={{
+              background: "#020c18",
+              border: `1px solid ${result.fidelity > 0.99 ? "#39ff14" : "#ff6b35"}`,
+              borderRadius: 8, padding: "11px 13px", textAlign: "center",
+              boxShadow: `0 0 12px ${result.fidelity > 0.99 ? "#39ff1418" : "#ff6b3518"}`,
+            }}>
+              <div style={{ fontSize: 9, color: "#6a9ab0", letterSpacing: 3, marginBottom: 2 }}>FIDELIDAD CUÁNTICA (F27)</div>
+              <div style={{ fontSize: 19, fontWeight: 900, fontFamily: "monospace",
+                color: result.fidelity > 0.99 ? "#39ff14" : "#ff6b35",
+                textShadow: `0 0 10px ${result.fidelity > 0.99 ? "#39ff14" : "#ff6b35"}`,
+              }}>
+                {result.fidelity.toFixed(10)}
+              </div>
+              <div style={{ fontSize: 9, color: "#355a70", marginTop: 2 }}>
+                {result.fidelity > 0.99 ? "✓ Dentro del corredor áureo" : "⚠ Desviación detectada"}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[
+                ["CONSUMO F25", `${result.recursos.toFixed(4)} L`, "#ff6b35"],
+                ["ÁNGULO MAESTRO", `${GOLDEN_ANGLE_DEG.toFixed(3)}°`, "#39ff14"],
+              ].map(([label, val, c]) => (
+                <div key={label} style={{ background: "#020c18", border: "1px solid #0a2a40", borderRadius: 8, padding: "9px 11px" }}>
+                  <div style={{ fontSize: 9, color: "#6a9ab0", letterSpacing: 1 }}>{label}</div>
+                  <div style={{ fontSize: 15, color: c, fontWeight: 700, marginTop: 2 }}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: "#020c18", border: "1px solid #0a2a40", borderRadius: 8, padding: "9px 11px" }}>
+              <div style={{ fontSize: 9, color: "#6a9ab0", letterSpacing: 2, marginBottom: 7 }}>DISTRIBUCIÓN</div>
+              <ProbBar label="|0⟩ ideal" value={result.p0_ideal} color="#00e5ff" />
+              <ProbBar label="|1⟩ ideal" value={result.p1_ideal} color="#00e5ff" />
+              <ProbBar label="|0⟩ shots" value={result.prob0} color="#39ff14" />
+              <ProbBar label="|1⟩ shots" value={result.prob1} color="#39ff14" />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {[["0", "#00e5ff"], ["1", "#ff6b35"]].map(([bit, col]) => (
+                <div key={bit} style={{ background: "#020c18", border: `1px solid ${col}44`, borderRadius: 8, padding: "8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 9, color: "#6a9ab0" }}>|{bit}⟩ COUNTS</div>
+                  <div style={{ fontSize: 17, color: col, fontWeight: 700, marginTop: 2 }}>{result.counts[bit].toLocaleString()}</div>
+                  <div style={{ fontSize: 9, color: "#355a70" }}>/ {shots.toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Live entanglement bars */}
+            <div style={{ background: "#020c18", border: "1px solid #0a2a40", borderRadius: 8, padding: "9px 11px" }}>
+              <div style={{ fontSize: 9, color: "#6a9ab0", letterSpacing: 2, marginBottom: 7 }}>ENTRELAZAMIENTO LIVE</div>
+              {liveVec.map((v) => {
+                const a = ((tick * TICK_FREQ + v.phase) / PHI) % (2 * Math.PI);
+                const pct = ((Math.sin(a) + 1) / 2 * 100).toFixed(0);
+                return (
+                  <div key={v.id} style={{ display: "flex", alignItems: "center", marginBottom: 5, gap: 6 }}>
+                    <span style={{ fontSize: 10, color: v.color, width: 22, fontWeight: 700 }}>{v.id}</span>
+                    <div style={{ flex: 1, height: 4, borderRadius: 2, background: "#0a1a2a", overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: v.color, opacity: 0.75, transition: "width 0.06s" }} />
+                    </div>
+                    <span style={{ fontSize: 9, color: "#4a7a90", width: 46, textAlign: "right" }}>
+                      {(a * 180 / Math.PI).toFixed(1)}°
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#355a70", fontSize: 12 }}>
+            Esperando ejecución...
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Console */}
+    <div style={{ background: "#020c18", border: "1px solid #0a2a40", borderRadius: 10, padding: 14 }}>
+      <div style={{ fontSize: 10, color: "#39ff14", letterSpacing: 3, marginBottom: 8 }}>CONSOLA DE EJECUCIÓN</div>
+      <div ref={logRef} style={{ height: 132, overflowY: "auto", fontFamily: "monospace", fontSize: 10, lineHeight: 1.7 }}>
+        {log.map((line, i) => (
+          <div key={i} style={{
+            color: line.includes("COMPLETADA") ? "#39ff14"
+              : line.includes("Fidelidad") ? "#00e5ff"
+              : line.includes("ENTRELAZADOS") ? "#ff3b3b"
+              : line.includes("⚠") ? "#ff6b35"
+              : "#4a8a70",
+          }}>{line}</div>
+        ))}
+        {running && <div style={{ color: "#00e5ff", opacity: pulseOp }}>█</div>}
+      </div>
+    </div>
+
+    <div style={{ textAlign: "center", fontSize: 9, color: "#1a3a50", letterSpacing: 2 }}>
+      MOTOR SIMPÁTICO · 3 QUBITS ENTRELAZADOS (120°) · φ = {PHI.toFixed(8)} · FÓRMULA 27
+    </div>
+  </div>
+</div>
+```
+
+);
+}
